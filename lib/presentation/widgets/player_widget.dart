@@ -9,6 +9,8 @@ class PlayerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final webViewController = controller.webViewController;
+
     return Semantics(
       label: 'Área do Avatar 3D do VLibras',
       child: Container(
@@ -20,7 +22,14 @@ class PlayerWidget extends StatelessWidget {
           border: Border.all(color: Theme.of(context).dividerColor),
         ),
         clipBehavior: Clip.antiAlias,
-        child: WebViewWidget(controller: controller.webViewController),
+        child: webViewController == null
+            ? const Center(
+                child: Text(
+                  'Player indisponível neste ambiente.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              )
+            : WebViewWidget(controller: webViewController),
       ),
     );
   }

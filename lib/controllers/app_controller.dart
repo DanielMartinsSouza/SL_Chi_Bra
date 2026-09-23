@@ -99,12 +99,20 @@ class AppController extends ChangeNotifier {
     _setState(AppState.listening);
     await _speechService.startListening(
       localeId: 'pt_BR',
-      onResult: (text, isFinal) {
-        textEditingController.text = text;
+      onResult: (text, isFinal) async {
+        final cleanedText = text.trim();
+        if (cleanedText.isEmpty) {
+          return;
+        }
+
+        textEditingController.text = cleanedText;
+        notifyListeners();
+
         if (isFinal) {
           _setState(AppState.readyToTranslate);
+          await _speechService.stopListening();
+          await translateAndPlay();
         }
-        notifyListeners();
       },
     );
   }
