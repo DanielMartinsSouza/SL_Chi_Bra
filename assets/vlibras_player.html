@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VLibras Unity Engine Direct Embed</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #121212;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: #121212;
+    }
+  </style>
+</head>
+<body>
+  <!-- Iframe direto do motor Unity do VLibras (sem widget wrapper) -->
+  <iframe
+    id="unity-iframe"
+    title="Avatar 3D VLibras"
+    src="https://vlibras.gov.br/app/unity/index.html?v=7.12.2"
+    allow="scripts allow-same-origin">
+  </iframe>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const iframe = document.getElementById('unity-iframe');
+      const DICT_BASE_URL = 'https://dicionario2.vlibras.gov.br/2018.3.1/WEBGL/';
+      const PLAYER = 'PlayerManager';
+      let isReady = false;
+
+      function notifyFlutter(event, data) {
+        if (window.FlutterBridge) {
+          window.FlutterBridge.postMessage(JSON.stringify({ event: event, data: data }));
+        }
+      }
+
+      function sendToUnity(object, method, params) {
+        if (!iframe || !iframe.contentWindow) return false;
+        try {
+          iframe.contentWindow.postMessage(
+            { type: 'unity', object: object, method: method, params: params },
+            '*'
+          );
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Escuta os eventos emitidos pelo iframe do Unity
+      window.addEventListener('message', function (e) {
+        if (!iframe || e.source !== iframe.contentWindow) return;
+        const m = e.data;
+        if (!m || m.type !== 'unity_event') return;
+
+        switch (m.event) {
+          case 'on_load_player':
+            configurePlayer();
+            break;
+          case 'update_progress':
+            notifyFlutter('onProgress', m.data);
+            break;
+          case 'counter_gloss':
+            notifyFlutter('onGlossProgress', m.data);
+            break;
+          case 'on_playing_state_change':
+            notifyFlutter('onStateChange', m.data);
+            break;
+          case 'on_error':
+            notifyFlutter('onError', m.data || 'Erro no player Unity WebGL');
+            break;
+        }
+      });
+
+      // Sequência de inicialização do player Unity
+      function configurePlayer() {
+        sendToUnity(PLAYER, 'setBaseUrl', DICT_BASE_URL);
+        sendToUnity(PLAYER, 'Change', 'icaro');
+        sendToUnity(PLAYER, 'setSubtitlesState', 1);
+
+        // Pula a animação inicial de boas-vindas após a configuração
+        setTimeout(function () {
+          sendToUnity(PLAYER, 'stopAll', '');
+          isReady = true;
+          notifyFlutter('onReady', 'Player Unity totalmente pronto');
+        }, 1200);
+      }
+
+      // Funções expostas para execução via Flutter WebViewController
+      window.playGloss = function (gloss) {
+        if (!gloss) {
+          notifyFlutter('onError', 'Glosa vazia recebida.');
+          return;
+        }
+        sendToUnity(PLAYER, 'playNow', gloss);
+        notifyFlutter('onPlaying', gloss);
+      };
+
+      window.stopSignaling = function () {
+        sendToUnity(PLAYER, 'stopAll', '');
+        notifyFlutter('onStopped', 'Sinalização interrompida.');
+      };
+
+      window.setAvatar = function (avatarName) {
+        sendToUnity(PLAYER, 'Change', avatarName);
+      };
+    })();
+  </script>
+</body>
+</html>
