@@ -38,7 +38,7 @@ class AppController extends ChangeNotifier {
     playerController.initialize(
       onEvent: (event, data) {
         if (event == 'onReady') {
-          if (_state == AppState.loadingPlayer || _state == AppState.idle) {
+          if (_state == AppState.idle) {
             _setState(AppState.idle);
           }
         } else if (event == 'onPlaying') {
@@ -115,7 +115,11 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> translateAndPlay() async {
-    final text = textEditingController.text.trim();
+    await translateTextAndPlay(textEditingController.text);
+  }
+
+  Future<void> translateTextAndPlay(String input) async {
+    final text = input.trim();
     if (text.isEmpty) {
       _setError('Digite ou fale um texto em português para traduzir.');
       return;
@@ -148,5 +152,11 @@ class AppController extends ChangeNotifier {
     textEditingController.clear();
     _glossText = '';
     _setState(AppState.idle);
+  }
+
+  @override
+  void dispose() {
+    textEditingController.dispose();
+    super.dispose();
   }
 }

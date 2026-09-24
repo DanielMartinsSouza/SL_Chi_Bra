@@ -4,15 +4,16 @@ import '../../controllers/vlibras_player_controller.dart';
 
 class PlayerWidget extends StatelessWidget {
   final VLibrasPlayerController controller;
+  final double height;
 
-  const PlayerWidget({super.key, required this.controller});
+  const PlayerWidget({super.key, required this.controller, this.height = 320});
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Área do Avatar 3D do VLibras',
       child: Container(
-        height: 320,
+        height: height,
         width: double.infinity,
         decoration: BoxDecoration(
           color: Colors.black,

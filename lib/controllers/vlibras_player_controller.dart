@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -8,6 +8,8 @@ class VLibrasPlayerController extends ChangeNotifier {
   bool _isReady = false;
   double _loadProgress = 0.0;
   String _currentGlossProgress = '';
+  final Completer<void> _ready = Completer<void>();
+  String? _loadError;
 
   bool get isReady => _isReady;
   double get loadProgress => _loadProgress;
@@ -30,7 +32,11 @@ class VLibrasPlayerController extends ChangeNotifier {
 
             if (event == 'onReady') {
               _isReady = true;
+              if (!_ready.isCompleted) _ready.complete();
               notifyListeners();
+            } else if (event == 'onError' && !_ready.isCompleted) {
+              _loadError = data.toString();
+              _ready.complete();
             } else if (event == 'onProgress') {
               if (data is num) {
                 _loadProgress = data.toDouble();
@@ -53,6 +59,12 @@ class VLibrasPlayerController extends ChangeNotifier {
   }
 
   Future<void> playGloss(String gloss) async {
+    await _ready.future.timeout(
+      const Duration(seconds: 45),
+      onTimeout: () =>
+          throw TimeoutException('O avatar do VLibras não carregou.'),
+    );
+    if (_loadError != null) throw Exception(_loadError);
     final jsonGloss = jsonEncode(gloss);
     await webViewController.runJavaScript('window.playGloss($jsonGloss);');
   }

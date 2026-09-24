@@ -1,17 +1,24 @@
-# china_brasil_sl
+# Rota em Libras (protótipo)
 
-A new Flutter project.
+Aplicativo Flutter que mostra uma rota e o avatar do VLibras na mesma tela. Cada instrução de navegação em português é enviada à API de tradução do VLibras; a glosa resultante é reproduzida pelo avatar no WebView.
 
-## Getting Started
+## Executar no Android
 
-This project is a starting point for a Flutter application.
+```sh
+flutter pub get
+flutter run -d emulator-5554  # ou use o ID do seu dispositivo em flutter devices
+```
 
-A few resources to get you started if this is your first Flutter project:
+É necessária conexão à internet para os mapas, a tradução e o avatar. Não é necessária permissão de localização: origem e destino são coordenadas fixas em Brasília.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- A rota **simulada** aparece ao abrir o app. Aguarde o avatar carregar; o primeiro passo é reproduzido automaticamente. Toque **Próximo** para avançar e sinalizar cada instrução; **Repetir** sinaliza o passo atual.
+- O ícone de nuvem no topo carrega uma rota real para os mesmos pontos usando o servidor de demonstração do OSRM (`router.project-osrm.org`). O ícone de rota volta à simulação. Ainda não há GPS nem avanço automático.
+- **Tradutor** abre os controles existentes de voz/texto; **Rota** volta ao mapa, mantendo o avatar na tela.
+- Mapas usam `flutter_map` com os tiles públicos do OpenStreetMap apenas para o protótipo. Para distribuição, configure um provedor de tiles apropriado e mantenha a atribuição.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+flutter test
+flutter analyze
+```
+
+As instruções de navegação são definidas por manobras em `lib/models/navigation_route.dart`; as fontes de rota implementam `NavigationProvider`. A reprodução continua usando `VLibrasTranslationService` e `VLibrasPlayerController`.
