@@ -27,7 +27,10 @@ class MicButton extends StatelessWidget {
           boxShadow: isListening
               ? [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.error.withOpacity(0.5),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .error
+                        .withValues(alpha: 0.5),
                     blurRadius: 16,
                     spreadRadius: 4,
                   )

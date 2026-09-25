@@ -13,8 +13,9 @@ Flutter app: pt-BR voice/text → Libras gloss via VLibras API → 3D avatar in 
 
 ## Architecture
 
-- Entry: `lib/main.dart` (`VLibrasApp` → `HomeScreen`). No routing, no DI framework.
-- State: `lib/controllers/app_controller.dart` (`ChangeNotifier`, `AppState` in `lib/models/app_state.dart`) handles translation/player. `HomeScreen` accepts `createController` for tests; `test/widget/home_screen_test.dart` fakes the WebView platform and uses an HTTP `MockClient`.
+- Entry: `lib/main.dart` (`VLibrasApp` → `HomeScreen` hub). No routing, no DI framework.
+- State: `lib/controllers/app_controller.dart` (`ChangeNotifier`, `AppState` in `lib/models/app_state.dart`) handles translation/player. `TranslatorScreen`/`NavigationScreen` accept `createController` for tests; `test/widget/home_screen_test.dart` fakes the WebView platform and uses an HTTP `MockClient`.
+- Screens: `lib/presentation/screens/home_screen.dart` (hub com 2 cards) → `translator_screen.dart` (voz/texto livre) e `navigation_screen.dart` (mapa + avatar 3D + áudio via `AudioGuidanceService`/`flutter_tts` pt-BR).
 - Navigation: `NavigationController` loads provider-independent `NavigationRoute`/`NavigationStep`. The fake route is default; cloud-download action swaps to OSRM for the same fixed Brasília endpoints. `lib/presentation/widgets/route_map.dart` uses `flutter_map` and public OSM tiles for this prototype; keep visible attribution and use a suitable hosted tile service for production. No GPS or location permission.
 - Layers: `presentation/screens|widgets/` → `controllers/` → `services/` (`speech_service.dart`, `vlibras_translation_service.dart`, `permission_service.dart`) + `models/`.
 - Player: `controllers/vlibras_player_controller.dart` wraps `WebViewController`, loads `assets/vlibras_player.html` (declared under `flutter.assets` in `pubspec.yaml`). Bridge: `FlutterBridge` JS channel (events `onReady onPlaying onStopped onError onProgress onGlossProgress`) + `window.playGloss(gloss)` / `window.stopSignaling()`.

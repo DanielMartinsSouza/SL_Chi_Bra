@@ -9,6 +9,9 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 import 'package:china_brasil_sl/controllers/app_controller.dart';
 import 'package:china_brasil_sl/models/app_state.dart';
 import 'package:china_brasil_sl/presentation/screens/home_screen.dart';
+import 'package:china_brasil_sl/presentation/screens/navigation_screen.dart';
+import 'package:china_brasil_sl/presentation/screens/translator_screen.dart';
+import 'package:china_brasil_sl/services/audio_guidance_service.dart';
 import 'package:china_brasil_sl/services/vlibras_translation_service.dart';
 
 class TestWebViewPlatform extends WebViewPlatform {
@@ -63,6 +66,19 @@ class TestWebViewWidget extends PlatformWebViewWidget {
   Widget build(BuildContext context) => const ColoredBox(color: Colors.black);
 }
 
+class FakeAudio extends AudioGuidanceService {
+  FakeAudio() : super(enabled: false);
+  final spoken = <String>[];
+
+  @override
+  Future<void> speak(String text) async {
+    spoken.add(text);
+  }
+
+  @override
+  Future<void> stop() async {}
+}
+
 void main() {
   testWidgets('Aguarda o avatar e informa erro se ele não carregar', (tester) async {
     WebViewPlatform.instance = TestWebViewPlatform();
@@ -81,16 +97,61 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('Hub exibe dois cards e navega para cada módulo', (tester) async {
+    final platform = TestWebViewPlatform();
+    WebViewPlatform.instance = platform;
+    final client = MockClient((request) async => http.Response('GLOSA', 200));
+
+    await tester.pumpWidget(MaterialApp(
+      home: HomeScreen(
+        translatorBuilder: (_) => TranslatorScreen(
+          createController: () => AppController(
+            translationService: VLibrasTranslationService(httpClient: client),
+          ),
+        ),
+        navigationBuilder: (_) => NavigationScreen(
+          createController: () => AppController(
+            translationService: VLibrasTranslationService(httpClient: client),
+          ),
+          audioService: FakeAudio(),
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('Tradutor Livre (VLibras)'), findsOneWidget);
+    expect(find.text('Navegação e Rotas'), findsOneWidget);
+
+    await tester.tap(find.text('Tradutor Livre (VLibras)'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(WebViewWidget), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Navegação e Rotas'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(FlutterMap), findsOneWidget);
+    expect(find.byType(WebViewWidget), findsOneWidget);
+    // Completa o pronto do avatar para cancelar o timeout de 45s do player.
+    platform.controller.ready();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+  });
+
   testWidgets('Mapa e avatar aparecem juntos e Próximo envia outra glosa',
       (tester) async {
     final platform = TestWebViewPlatform();
     WebViewPlatform.instance = platform;
     final client = MockClient((request) async => http.Response('GLOSA', 200));
     await tester.pumpWidget(MaterialApp(
-      home: HomeScreen(
+      home: NavigationScreen(
         createController: () => AppController(
           translationService: VLibrasTranslationService(httpClient: client),
         ),
+        audioService: FakeAudio(),
       ),
     ));
     await tester.pump();
@@ -114,10 +175,22 @@ void main() {
             .where((s) => s.contains('playGloss'))
             .length,
         2);
+  });
 
-    await tester.tap(find.text('Tradutor'));
+  testWidgets('Tradutor exibe campo, botão e avatar', (tester) async {
+    WebViewPlatform.instance = TestWebViewPlatform();
+    final client = MockClient((request) async => http.Response('GLOSA', 200));
+    await tester.pumpWidget(MaterialApp(
+      home: TranslatorScreen(
+        createController: () => AppController(
+          translationService: VLibrasTranslationService(httpClient: client),
+        ),
+      ),
+    ));
     await tester.pump();
+
     expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('Traduzir'), findsOneWidget);
     expect(find.byType(WebViewWidget), findsOneWidget);
   });
 }
